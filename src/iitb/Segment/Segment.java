@@ -71,11 +71,11 @@ public class Segment {
 		}
 		options.add(3, argv);
 		processArgs();
-		String args = String.format("Running Segment:\n\tnumlabels=%s\n\tinName=%s\n\touddir=%s\n\ttagDelimit=%s\n\t" 
-				+ "delimit=%s\n\timpl delimit=%s\n\tgroup delimit+%s\n\tmap tag=%s\n\tvalidate=%s\n\t"
-				+ "model graph=%s\n\tfeature args=%s\n\t",nlabels,inName,outDir,tagDelimit,delimit,impDelimit,
-				groupDelimit,mapTagString,validate,modelGraphType,featureArgs);
-		System.out.println(args);
+		//		String args = String.format("Running Segment:\n\tnumlabels=%s\n\tinName=%s\n\touddir=%s\n\ttagDelimit=%s\n\t" 
+		//				+ "delimit=%s\n\timpl delimit=%s\n\tgroup delimit+%s\n\tmap tag=%s\n\tvalidate=%s\n\t"
+		//				+ "model graph=%s\n\tfeature args=%s\n\t",nlabels,inName,outDir,tagDelimit,delimit,impDelimit,
+		//				groupDelimit,mapTagString,validate,modelGraphType,featureArgs);
+
 	}
 
 	public void processArgs() throws Exception {
@@ -152,6 +152,11 @@ public class Segment {
 			crfModel=new CRF(featureGen.numStates(),featureGen,options);
 		}
 	}
+	
+	/*  Implementation of a DataSequence Object for testing..
+	 *  What is it's design??  Is it supposed to be mutable?
+	 *  It's basically simply supposed to 
+	 */
 	class TestRecord implements SegmentDataSequence {
 		String seq[];
 		int path[];
@@ -188,12 +193,26 @@ public class Segment {
 			for (int i = segmentStart; i <= segmentEnd; i++)
 				set_y(i,y);
 		}
+		// labeling data as segment:label
+		public String toString() {
+			if (seq.length!=path.length)
+				return "Invalid  record";
+			StringBuilder sb = new StringBuilder();
+			int pointer = 0;
+			while(pointer<seq.length) {
+				sb.append(" "+pointer+". ").append(path[pointer]).append(":").append(seq[pointer]);
+				pointer++;
+			}
+			return sb.toString();
+		}
 	};
 
 
+	// This is a bit odd.  It's actually treating collect as an output object..
 	public int[] segment(TestRecord testRecord, int[] groupedToks, String collect[]) {
 		for (int i = 0; i < testRecord.length(); i++)
 			testRecord.seq[i] = AlphaNumericPreprocessor.preprocess(testRecord.seq[i]);
+		
 		crfModel.apply(testRecord);
 		featureGen.mapStatesToLabels(testRecord);
 		int path[] = testRecord.path;
@@ -217,8 +236,10 @@ public class Segment {
 		File dir=new File(baseDir+"/learntModels/"+outDir);
 		dir.mkdirs();
 		TrainData trainData = DataCruncher.readTagged(nlabels,baseDir+"/data/"+inName+"/"+inName+".train",baseDir+"/data/"+inName+"/"+inName+".train",delimit,tagDelimit,impDelimit,labelMap);
+		/* loops through traindata, changes all instances of numbers to the string "DIGIT" */
 		AlphaNumericPreprocessor.preprocess(trainData,nlabels);
-
+		/* sets the featureGenerator, and instantiates the CRF model
+		   Default model is Naive, Default featureGen is FeatureGenImpl  */
 		allocModel();
 		featureGen.train(trainData);
 		double featureWts[] = crfModel.train(trainData);
@@ -241,6 +262,19 @@ public class Segment {
 		crfModel.read(baseDir+"/learntModels/"+outDir+"/crf");
 		doTest();
 	}
+	
+	public String implode(String[] input, String glue) {
+		StringBuilder sb = new StringBuilder();
+		for (String o : input) {
+			sb.append(o).append(glue);
+		}
+//		for (int i =0; i<input.length; i++) {
+//			sb.append(input[i]).append(glue);
+//		}
+		return sb.toString();
+	}
+	// What/How is this different than the calc routine?
+	// Why is there a Test data type as well as a Train type?
 	public void doTest() throws Exception {
 		File dir=new File(baseDir+"/out/"+outDir);
 		dir.mkdirs();
@@ -249,14 +283,15 @@ public class Segment {
 
 		String collect[] = new String[nlabels];
 		TestRecord testRecord = new TestRecord(collect);
-		for(String seq[] = testData.nextRecord();  seq != null; 
-		seq = testData.nextRecord()) {
-			testRecord.init(seq);
-			if (options.getInt("debugLvl") > 1) {
-				Util.printDbg("Invoking segment on " + seq);
+		for(String seq[] = testData.nextRecord();  seq != null; seq = testData.nextRecord()) {
+			TestRecord tr = new TestRecord(seq);
+			//testRecord.init(seq);
+			
+			int path[] = segment(tr, testData.groupedTokens(), collect);
+			if (options.getInt("debugLvl") > 0) {
+				Util.printDbg("Testing segment: "+tr);
 			}
-			int path[] = segment(testRecord, testData.groupedTokens(), collect);
-			tdw.writeRecord(path,testRecord.length());
+			tdw.writeRecord(path,tr.length());
 		}
 		tdw.close();
 	}
@@ -272,6 +307,12 @@ public class Segment {
 		for (int i = 0; i < ar.length; i++)
 			st += (ar[i] + " ");
 		return st;
+	}
+	
+	public double f1(double precision, double recall) {
+		if (precision==0.0 && recall==0.0)
+			return 0.0;
+		return 2*precision*recall/(precision+ recall);
 	}
 	public void calc() throws Exception {
 		Vector s=new Vector();
@@ -377,12 +418,12 @@ public class Segment {
 		for(int i=0 ; i<nlabels ; i++) {
 			prec=(totalMarkedPos[i]==0)?0:((double)(truePos[i]*100000/totalMarkedPos[i]))/1000;
 			recall=(totalPos[i]==0)?0:((double)(truePos[i]*100000/totalPos[i]))/1000;
-			System.out.println((i)+":\t"+truePos[i]+"\t"+totalMarkedPos[i]+"\t"+totalPos[i]+"\t"+prec+"\t"+recall+"\t"+2*prec*recall/(prec+recall));
+			System.out.println((i)+":\t"+truePos[i]+"\t"+totalMarkedPos[i]+"\t"+totalPos[i]+"\t"+prec+"\t"+recall+"\t"+f1(prec,recall));
 		}
 		System.out.println("---------------------------------------------------------");
 		prec=(totalMarkedPos[nlabels]==0)?0:((double)(truePos[nlabels]*100000/totalMarkedPos[nlabels]))/1000;
 		recall=(totalPos[nlabels]==0)?0:((double)(truePos[nlabels]*100000/totalPos[nlabels]))/1000;
-		System.out.println("Ov:\t"+truePos[nlabels]+"\t"+totalMarkedPos[nlabels]+"\t"+totalPos[nlabels]+"\t"+prec+"\t"+recall+"\t"+2*prec*recall/(prec+recall));
+		System.out.println("Ov:\t"+truePos[nlabels]+"\t"+totalMarkedPos[nlabels]+"\t"+totalPos[nlabels]+"\t"+prec+"\t"+recall+"\t"+f1(prec,recall));
 
 	}
 };

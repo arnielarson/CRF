@@ -29,6 +29,7 @@ public class AlphaNumericPreprocessor extends Preprocessor {
 		}
 		return true;
 	}
+	/* This is a bit confusing..  is this supposed to mutate the input data? */
 	public static TrainData  preprocess(TrainData tokens, int numLabels) {
 		for (tokens.startScan(); tokens.hasMoreRecords(); ) {
 			TrainRecord tr = tokens.nextRecord();

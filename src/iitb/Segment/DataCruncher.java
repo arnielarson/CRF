@@ -16,6 +16,7 @@ class DCTrainRecord implements TrainRecord {
 	int[] labelsPerToken;
 	int[] snum, spos;
 
+	// labeled input data.
 	DCTrainRecord(int[] ts, String[][] toks) {
 		ls = ts;
 		_tokens = toks;

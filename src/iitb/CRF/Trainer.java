@@ -65,7 +65,7 @@ public class Trainer {
         init(model,data,l);
         evaluator = eval;
         if (params.debugLvl > 0) {
-            Util.printDbg("Number of features :" + lambda.length);	    
+            Util.printDbg("Number of features: " + lambda.length);	    
         }
         doTrain();
     }
