@@ -148,6 +148,7 @@ public class Segment {
 			crfModel = new NestedCRF(featureGen.numStates(),nfgen,options);
 		} else 
 		{
+			System.out.println("Allocating base model: "+modelGraphType+" with "+nlabels+" labels.");
 			featureGen = new FeatureGenImpl(modelGraphType, nlabels);
 			crfModel=new CRF(featureGen.numStates(),featureGen,options);
 		}
@@ -241,7 +242,9 @@ public class Segment {
 		/* sets the featureGenerator, and instantiates the CRF model
 		   Default model is Naive, Default featureGen is FeatureGenImpl  */
 		allocModel();
+		/* Training features calls feature.train() for each element in the data sequence */
 		featureGen.train(trainData);
+		/* once the features have been set up, can train the model */ 
 		double featureWts[] = crfModel.train(trainData);
 		if (options.getInt("debugLvl") > 1) {
 			Util.printDbg("Training done");

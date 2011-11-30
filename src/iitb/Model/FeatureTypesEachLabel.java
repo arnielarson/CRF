@@ -4,7 +4,9 @@ import iitb.CRF.DataSequence;
 
 /**
  * This can be used as a wrapper around a FeatureTypes class that wants to
- * generate a feature for each label. 
+ * generate a feature for each label.   
+ * 
+ *  For a ConcatRegexFeature inputed, this will 
  */
 public class FeatureTypesEachLabel extends FeatureTypes {
 	protected FeatureTypes single;
@@ -24,15 +26,14 @@ public class FeatureTypesEachLabel extends FeatureTypes {
 		featureImpl = new FeatureImpl();
 		thisTypeId = single.thisTypeId;
 	}
-	protected void nextFeature() {
-	    single.next(featureImpl);
-	}
+
+	
 	boolean advance() {
 		stateId++;
 		if (stateId < numStates)
 			return true;
 		if (single.hasNext()) {
-		    nextFeature();
+			single.next(featureImpl);
 			stateId = 0;
 		} 
 		return stateId < numStates;

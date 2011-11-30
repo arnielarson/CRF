@@ -44,6 +44,7 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 	int cposEnd;
 	int cposStart;
 	WordsInTrain dict;
+	FeatureMap featureMap;
 
 	public void addFeature(FeatureTypes fType) {
 		addFeature(fType,false);
@@ -67,11 +68,14 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 		addFeature(new StartFeatures(this));
 		addFeature(new EndFeatures(this));
 
-		addFeature(new UnknownFeature(this,getDict()));
+		//addFeature(new UnknownFeature(this,getDict()));
 		// addFeature(new KnownInOtherState(this, getDict()));
-		//	addFeature(new KernelFeaturesForLongEntity(model,new WordFeatures(model, dict)));
-		addFeature(new WordFeatures(this, getDict()));
+		//	addFeature(new KernelFeaturesForLongEntity(model,new WordFeatures(model, getDict())));
+		//addFeature(new WordFeatures(this, getDict()));
+
+		// This feature is weird.  It wraps another feature..
 		addFeature(new FeatureTypesEachLabel(this,new ConcatRegexFeatures(this,0,0)));
+		System.out.println("Number of features is: "+features.size());
 	}
 	protected FeatureTypes getFeature(int i) {
 		return (FeatureTypes)features.elementAt(i);
@@ -106,11 +110,12 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 		}
 		public int add(FeatureImpl feature) {
 			int newId = strToInt.size();
+			System.out.println("Putting in feature: "+feature.identifier().name+" id: "+newId);
 			strToInt.put(feature.identifier().clone(), new Integer(newId));
 			return newId;
 		}
 		void freezeFeatures() {
-			//	    System.out.println(strToInt.size());
+			System.out.println("freazing features, feature map size: "+strToInt.size()+" features: "+features.size());
 			featureCollectMode = false;
 			idToName = new FeatureIdentifier[strToInt.size()];
 			for (Enumeration e = strToInt.keys() ; e.hasMoreElements() ;) {
@@ -119,6 +124,8 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 			}
 			totalFeatures = strToInt.size();
 		}
+
+		// Loop through the data iter, and 
 		public int collectFeatureIdentifiers(DataIter trainData, int maxMem) throws Exception {
 			for (trainData.startScan(); trainData.hasNext();) {
 				DataSequence seq = trainData.next();
@@ -151,7 +158,7 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 		public FeatureIdentifier getIdentifier(int id) {return idToName[id];} 
 		public String getName(int id) {return idToName[id].toString();} 
 	};
-	FeatureMap featureMap;
+	
 	static Model getModel(String modelSpecs, int numLabels) throws Exception {
 		// create model..
 		return Model.getNewModel(numLabels,modelSpecs);
@@ -207,9 +214,9 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 	public boolean train(DataIter trainData, boolean cachedLabels, boolean collectIds) throws Exception {
 		// map the y-values in the training set.
 		boolean labelsMapped = false;
-		if (cachedLabels) {
+		if (cachedLabels) 
 			labelsMapped = stateMappings(trainData);
-		}
+		
 		if (dict != null) dict.train(trainData,model.numStates());
 		boolean requiresTraining = false;
 		for (int f = 0; f < features.size(); f++) {
@@ -219,7 +226,10 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 			}
 		}
 
+		// if training, for each TrainData (as DataSequence)
+		// calls feature.train() for each element in the sequence
 		if (requiresTraining) {
+			System.out.println("Features Require Training");
 			for (trainData.startScan(); trainData.hasNext();) {
 				DataSequence seq = trainData.next();
 				for (int l = 0; l < seq.length(); l++) {
@@ -231,7 +241,8 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 
 			}
 		}
-		if (collectIds) totalFeatures = featureMap.collectFeatureIdentifiers(trainData,maxMemory());
+		if (collectIds) 
+			totalFeatures = featureMap.collectFeatureIdentifiers(trainData,maxMemory());
 		return labelsMapped;
 	};
 	/**
@@ -284,7 +295,7 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 	/**
 	 * @param featureToReturn
 	 */
-	 protected void copyNextFeature(FeatureImpl featureToReturn) {
+	protected void copyNextFeature(FeatureImpl featureToReturn) {
 		currentFeatureType.next(featureToReturn);
 	}
 	/**
@@ -294,100 +305,100 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 	 * @param data
 	 * @return
 	 */
-	 public static boolean featureValid(DataSequence data, int cposStart, int cposEnd, FeatureImpl featureToReturn, Model model) {
-		 if (((cposStart > 0) && (cposEnd < data.length()-1)) 
-				 || (featureToReturn.y() >= model.numStates())
-				 || (featureToReturn.yprev() >= model.numStates()))
-			 return true;
-		 if ((cposStart == 0) && (model.isStartState(featureToReturn.y()))
-				 && ((data.length()>1) || (model.isEndState(featureToReturn.y())))) 
-			 return true;
-		 if ((cposEnd == data.length()-1) && (model.isEndState(featureToReturn.y())))
-			 return true;
-		 return false;
-	 }
-	 protected void initScanFeaturesAt(DataSequence d) {
-		 data = d;
-		 currentFeatureType = null;
-		 featureIter = features.iterator();
-		 advance();
-	 }
-	 public void startScanFeaturesAt(DataSequence d, int prev, int p) {
-		 cposEnd = p;
-		 cposStart = prev+1;
-		 for (int i = 0; i < features.size(); i++) {
-			 getFeature(i).startScanFeaturesAt(d,prev,cposEnd);
-		 }
-		 initScanFeaturesAt(d);
-	 }
-	 public void startScanFeaturesAt(DataSequence d, int p) {
-		 cposEnd = p;
-		 cposStart = p;
-		 for (int i = 0; i < features.size(); i++) {
-			 getFeature(i).startScanFeaturesAt(d,cposEnd);
-		 }
-		 initScanFeaturesAt(d);
-	 }
-	 public boolean hasNext() {
-		 return (featureToReturn.id >= 0);
-	 }
+	public static boolean featureValid(DataSequence data, int cposStart, int cposEnd, FeatureImpl featureToReturn, Model model) {
+		if (((cposStart > 0) && (cposEnd < data.length()-1)) 
+				|| (featureToReturn.y() >= model.numStates())
+				|| (featureToReturn.yprev() >= model.numStates()))
+			return true;
+		if ((cposStart == 0) && (model.isStartState(featureToReturn.y()))
+				&& ((data.length()>1) || (model.isEndState(featureToReturn.y())))) 
+			return true;
+		if ((cposEnd == data.length()-1) && (model.isEndState(featureToReturn.y())))
+			return true;
+		return false;
+	}
+	protected void initScanFeaturesAt(DataSequence d) {
+		data = d;
+		currentFeatureType = null;
+		featureIter = features.iterator();
+		advance();
+	}
+	public void startScanFeaturesAt(DataSequence d, int prev, int p) {
+		cposEnd = p;
+		cposStart = prev+1;
+		for (int i = 0; i < features.size(); i++) {
+			getFeature(i).startScanFeaturesAt(d,prev,cposEnd);
+		}
+		initScanFeaturesAt(d);
+	}
+	public void startScanFeaturesAt(DataSequence d, int p) {
+		cposEnd = p;
+		cposStart = p;
+		for (int i = 0; i < features.size(); i++) {
+			getFeature(i).startScanFeaturesAt(d,cposEnd);
+		}
+		initScanFeaturesAt(d);
+	}
+	public boolean hasNext() {
+		return (featureToReturn.id >= 0);
+	}
 
-	 public Feature next() {
-		 feature.copy(featureToReturn);
-		 advance();
-		 //      System.out.println(feature);
-		 return feature;
-	 }
-	 public void freezeFeatures() {
-		 if (featureCollectMode)
-			 featureMap.freezeFeatures();
-	 }
-	 public int numFeatures() {
-		 return totalFeatures;
-	 }
-	 public FeatureIdentifier featureIdentifier(int id) {return featureMap.getIdentifier(id);}
-	 public String featureName(int featureIndex) {
-		 return featureMap.getName(featureIndex);
-	 }
-	 public int numStates() {
-		 return model.numStates();
-	 }
-	 public int label(int stateNum) {
-		 return model.label(stateNum);
-	 }
-	 protected int numFeatureTypes() {
-		 return features.size();
-	 }
-	 public void read(String fileName) throws IOException {
-		 BufferedReader in=new BufferedReader(new FileReader(fileName));
-		 if (dict != null) dict.read(in, model.numStates());
-		 totalFeatures = featureMap.read(in);
-	 }
-	 public void write(String fileName) throws IOException {
-		 PrintWriter out=new PrintWriter(new FileOutputStream(fileName));
-		 if (dict != null) dict.write(out);
-		 featureMap.write(out);
-		 out.close();
-	 }
-	 public void displayModel(double featureWts[]) throws IOException {
-		 displayModel(featureWts,System.out);
-	 }
-	 public void displayModel(double featureWts[], PrintStream out) throws IOException {
-		 for (int fIndex = 0; fIndex < featureWts.length; fIndex++) {
-			 Object feature = featureIdentifier(fIndex).name;
-			 int classIndex = featureIdentifier(fIndex).stateId;
-			 int label = model.label(classIndex);
-			 out.println(feature + " " + label + " " + classIndex + " " + featureWts[fIndex]);
-		 }
-		 /*
+	public Feature next() {
+		feature.copy(featureToReturn);
+		advance();
+		//      System.out.println(feature);
+		return feature;
+	}
+	public void freezeFeatures() {
+		if (featureCollectMode)
+			featureMap.freezeFeatures();
+	}
+	public int numFeatures() {
+		return totalFeatures;
+	}
+	public FeatureIdentifier featureIdentifier(int id) {return featureMap.getIdentifier(id);}
+	public String featureName(int featureIndex) {
+		return featureMap.getName(featureIndex);
+	}
+	public int numStates() {
+		return model.numStates();
+	}
+	public int label(int stateNum) {
+		return model.label(stateNum);
+	}
+	protected int numFeatureTypes() {
+		return features.size();
+	}
+	public void read(String fileName) throws IOException {
+		BufferedReader in=new BufferedReader(new FileReader(fileName));
+		if (dict != null) dict.read(in, model.numStates());
+		totalFeatures = featureMap.read(in);
+	}
+	public void write(String fileName) throws IOException {
+		PrintWriter out=new PrintWriter(new FileOutputStream(fileName));
+		if (dict != null) dict.write(out);
+		featureMap.write(out);
+		out.close();
+	}
+	public void displayModel(double featureWts[]) throws IOException {
+		displayModel(featureWts,System.out);
+	}
+	public void displayModel(double featureWts[], PrintStream out) throws IOException {
+		for (int fIndex = 0; fIndex < featureWts.length; fIndex++) {
+			Object feature = featureIdentifier(fIndex).name;
+			int classIndex = featureIdentifier(fIndex).stateId;
+			int label = model.label(classIndex);
+			out.println(feature + " " + label + " " + classIndex + " " + featureWts[fIndex]);
+		}
+		/*
          out.println("Feature types statistics");
          for (int f = 0; f < features.size(); f++) {
          getFeature(f).print(featureMap, featureWts);
          }
-		  */
-	 }
+		 */
+	}
 
-	 public boolean fixedTransitionFeatures() {
-		 return _fixedTransitions;
-	 }
+	public boolean fixedTransitionFeatures() {
+		return _fixedTransitions;
+	}
 };

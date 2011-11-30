@@ -24,23 +24,24 @@ public abstract class FeatureTypes implements Serializable {
 		this.fgen = fgen;
 		thisTypeId = fgen.numFeatureTypes++;
 	}
-	/**
-	 * @param s
-	 */
+
 	public FeatureTypes(FeatureTypes s) {
 		this(s.fgen);
 		thisTypeId = s.thisTypeId;
 		fgen.numFeatureTypes--;
-
 	}
+
+	/* default behavior doesnt' need to train on the feature */
 	public boolean requiresTraining(){return false;}
 	public void train(DataSequence data, int pos) {;}
+	
 	public  boolean startScanFeaturesAt(DataSequence data, int pos) {
 		return startScanFeaturesAt(data,pos-1,pos);
 	}
 	public abstract boolean startScanFeaturesAt(DataSequence data, int prevPos, int pos);
 	public abstract boolean hasNext();
 	public abstract void next(FeatureImpl f);
+	
 	public void setFeatureIdentifier(int fId, int stateId, String name, FeatureImpl f) {
 		setFeatureIdentifier( fId,  stateId, (Object)name,  f);
 	}
@@ -67,6 +68,7 @@ public abstract class FeatureTypes implements Serializable {
     }
 	 */
 	public int getTypeId() {return thisTypeId;}
+	
 	public boolean featureCollectMode() {return fgen.featureCollectMode;}
 	// returns false if transition features change with x or position
 	public boolean fixedTransitionFeatures() {

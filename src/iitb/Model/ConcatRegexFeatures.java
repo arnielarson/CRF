@@ -58,34 +58,34 @@ public class ConcatRegexFeatures extends FeatureTypes {
 	 *      in this array.
 	 */
 	String patternString[][] = {
-	    {"isWord",           		"[a-zA-Z][a-zA-Z]+"     },
-	    {"singleCapLetterWithDot",  "[A-Z]\\."  			},
-		{"singleCapLetter",  		"[A-Z]"  				},
-		{"isDigits", 				"\\d+"					},
-		{"singleDot", 		"[.]"			},
-		{"singleComma", 		"[,]"			},
+	    {"isWord",           		"[a-zA-Z][a-zA-Z]+"},
+	    {"singleCapLetterWithDot",  "[A-Z]\\."},
+		{"singleCapLetter",  		"[A-Z]"},
+		{"isDigits", 				"\\d+"},
+		{"singleDot", 				"[.]"},
+		{"singleComma", 			"[,]"},
 		{"isSpecialCharacter",		"[#;:\\-/<>'\"()&]"},
 		{"containsSpecialCharacters",".*[#;:\\-/<>'\"()&].*"},
-		{"isInitCapital",     		"[A-Z][a-z]+"        },
-		{"isAllCapital",      		"[A-Z]+"                },
-		{"isAllSmallCase",      	"[a-z]+"                },
-		{"isAlpha",           		"[a-zA-Z]+"             },
-		{"isAlphaNumeric",      	"[a-zA-Z0-9]+"          },
-		{"endsWithDot",             "\\p{Alnum}+\\."        },
-		{"endsWithComma",       	"\\w+[,]"              },
-		{"endsWithPunctuation",     "\\w+[;:,.?!]"		    },
-		{"singlePunctuation", 		"\\p{Punct}"			},
-		{"singleAmp", 		"[&]"			},
-		{"containsDigit", 			".*\\d+.*"				},				
-		{"singleDigit", 				"\\s*\\d\\s*"					},
-		{"twoDigits", 				"\\s*\\d{2}\\s*"					},
-		{"threeDigits", 				"\\s*\\d{3}\\s*"					},
-		{"fourDigits", 				"\\s*\\(*\\d{4}\\)*\\s*"	},
+		{"isInitCapital",     		"[A-Z][a-z]+"},
+		{"isAllCapital",      		"[A-Z]+"},
+		{"isAllSmallCase",      	"[a-z]+"},
+		{"isAlpha",           		"[a-zA-Z]+"},
+		{"isAlphaNumeric",      	"[a-zA-Z0-9]+"},
+		{"endsWithDot",             "\\p{Alnum}+\\."},
+		{"endsWithComma",       	"\\w+[,]"},
+		{"endsWithPunctuation",     "\\w+[;:,.?!]"},
+		{"singlePunctuation", 		"\\p{Punct}"},
+		{"singleAmp", 				"[&]"},
+		{"containsDigit", 			".*\\d+.*"},				
+		{"singleDigit", 			"\\s*\\d\\s*"},
+		{"twoDigits", 				"\\s*\\d{2}\\s*"},
+		{"threeDigits", 			"\\s*\\d{3}\\s*"},
+		{"fourDigits", 				"\\s*\\(*\\d{4}\\)*\\s*"},
 		{"isNumberRange", 			"\\d+\\s*([-]{1,2}\\s*\\d+)?"},
-		{"isDashSeparatedWords", 		"(\\w[-])+\\w"},
-		{"isDashSeparatedSeq", 			"((\\p{Alpha}+|\\p{Digit}+)[-])+(\\p{Alpha}+|\\p{Digit}+)"},		
+		{"isDashSeparatedWords", 	"(\\w[-])+\\w"},
+		{"isDashSeparatedSeq", 		"((\\p{Alpha}+|\\p{Digit}+)[-])+(\\p{Alpha}+|\\p{Digit}+)"},		
 		{"isURL", 					"\\p{Alpha}+://(\\w+\\.)\\w+(:(\\d{2}|\\d{4}))?(/\\w+)*(/|(/\\w+\\.\\w+))?"	},
-		{"isEmailId", 				"\\w+@(\\w+\\.)+\\w+"	},
+		{"isEmailId", 				"\\w+@(\\w+\\.)+\\w+"},
 		{"containsDashes",			".*--.*"}
 	};
 
@@ -240,7 +240,7 @@ public class ConcatRegexFeatures extends FeatureTypes {
 	 * @param pos		Current token postion
 	 */
 	public boolean startScanFeaturesAt(DataSequence data, int prevPos, int pos){
-		assert(patternString != null);
+		//assert(patternString != null);
 		this.data = data;
 		index = 0;
 		if (relSegmentStart <= 0) {
