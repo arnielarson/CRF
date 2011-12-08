@@ -238,7 +238,7 @@ public class Segment {
 		dir.mkdirs();
 		TrainData trainData = DataCruncher.readTagged(nlabels,baseDir+"/data/"+inName+"/"+inName+".train",baseDir+"/data/"+inName+"/"+inName+".train",delimit,tagDelimit,impDelimit,labelMap);
 		/* loops through traindata, changes all instances of numbers to the string "DIGIT" */
-		AlphaNumericPreprocessor.preprocess(trainData,nlabels);
+		//AlphaNumericPreprocessor.preprocess(trainData,nlabels);
 		/* sets the featureGenerator, and instantiates the CRF model
 		   Default model is Naive, Default featureGen is FeatureGenImpl  */
 		allocModel();
@@ -261,6 +261,7 @@ public class Segment {
 
 	public void test() throws Exception {
 		allocModel();
+		// Sets up the feature maps from the model??
 		featureGen.read(baseDir+"/learntModels/"+outDir+"/features");
 		crfModel.read(baseDir+"/learntModels/"+outDir+"/crf");
 		doTest();

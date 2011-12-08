@@ -4,6 +4,8 @@ import iitb.CRF.*;
 
 import java.util.*;
 import java.io.*;
+
+
 /**
  * The FeatureGenerator is an aggregator over all these different
  * feature types. You can inherit from the FeatureGenImpl class and
@@ -16,8 +18,9 @@ import java.io.*;
  * number of labels. You will have to create a new class that is
  * derived from FeatureGenImpl and just have a different
  * implementation of the addFeatures subroutine. The rest will be
- * handled by the parent class.  
- * This class  is responsible for converting the
+ * handled by the parent class.
+ *   
+ * NOTE:  This class  is responsible for converting the 
  * string-ids that the FeatureTypes assign to their features into
  * distinct numbers. It has a inner class called FeatureMap that will
  * make one pass over the training data and create the map of
@@ -28,14 +31,16 @@ import java.io.*;
  * */
 
 public class FeatureGenImpl implements FeatureGeneratorNested {
-	Vector features;
-	transient Iterator featureIter;
-	protected FeatureTypes currentFeatureType;
-	protected FeatureImpl featureToReturn, feature;
+	
+	List<FeatureTypes> features = new ArrayList<FeatureTypes>();  // list of FeatureTypes
+	transient Iterator<FeatureTypes> featureIter;  // mutable iter of the assigned features 
+	protected FeatureTypes currentFeatureType;  // <- pointer to the current feature
+	protected FeatureImpl featureToReturn, feature;  // stateful mutable featureImpls that are reused
 	public Model model;
 	int numFeatureTypes=0;
 	int totalFeatures;
 	boolean _fixedTransitions=true;
+	boolean featureCollectMode = false;
 	public boolean generateOnlyXFeatures=false;
 	public boolean addOnlyTrainFeatures=true;
 	TIntHashSet retainedFeatureTypes=new TIntHashSet(); // all features of this type are retained.
@@ -74,11 +79,11 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 		//addFeature(new WordFeatures(this, getDict()));
 
 		// This feature is weird.  It wraps another feature..
-		addFeature(new FeatureTypesEachLabel(this,new ConcatRegexFeatures(this,0,0)));
+		//addFeature(new FeatureTypesEachLabel(this,new ConcatRegexFeatures(this,0,0)));
 		System.out.println("Number of features is: "+features.size());
 	}
 	protected FeatureTypes getFeature(int i) {
-		return (FeatureTypes)features.elementAt(i);
+		return features.get(i);
 	}
 	protected boolean keepFeature(DataSequence seq, FeatureImpl f) {
 		if ((retainedFeatureTypes != null) && (retainedFeatureTypes.contains(currentFeatureType.getTypeId()+1)))
@@ -89,25 +94,30 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 		return ((seq.y(cposEnd) == f.y()) 
 				&& ((cposStart == 0) || (f.yprev() < 0) || (seq.y(cposStart-1) == f.yprev())));
 	}
-	boolean featureCollectMode = false;
+	
+
 	class FeatureMap implements Serializable {
 		Hashtable strToInt = new Hashtable();
 		FeatureIdentifier idToName[];
 		FeatureMap(){
 			featureCollectMode = true;
 		}
+		// 
 		public int getId(FeatureImpl f) {
 			int id = getId(f.identifier());
 			if ((id < 0) && featureCollectMode && (!addOnlyTrainFeatures || keepFeature(data,f)))
 				return add(f);
 			return id;
 		}
+		// get the feature id, (returns -1 if not found)
 		private int getId(Object key) {
-			if (strToInt.get(key) != null) {
-				return ((Integer)strToInt.get(key)).intValue();
-			}
-			return -1;
+			return strToInt.get(key) != null ?  ((Integer)strToInt.get(key)).intValue() : -1;
+//			if (strToInt.get(key) != null) {
+//				return ((Integer)strToInt.get(key)).intValue();
+//			}
+//			return -1;
 		}
+		// append this feature the feature map
 		public int add(FeatureImpl feature) {
 			int newId = strToInt.size();
 			System.out.println("Putting in feature: "+feature.identifier().name+" id: "+newId);
@@ -125,7 +135,8 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 			totalFeatures = strToInt.size();
 		}
 
-		// Loop through the data iter, and 
+		// Gets the names of all the features..  loops through the dataiter
+		//
 		public int collectFeatureIdentifiers(DataIter trainData, int maxMem) throws Exception {
 			for (trainData.startScan(); trainData.hasNext();) {
 				DataSequence seq = trainData.next();
@@ -142,6 +153,8 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 				out.println(key + " " + ((Integer)strToInt.get(key)).intValue());
 			}
 		}
+		
+		/* provids a way of reading in features from a saved model */
 		public int read(BufferedReader in) throws IOException {
 			in.readLine();
 			int len = Integer.parseInt(in.readLine());
@@ -213,14 +226,15 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 	public boolean labelMappingNeeded() {return model.numStates() != model.numberOfLabels();}
 	public boolean train(DataIter trainData, boolean cachedLabels, boolean collectIds) throws Exception {
 		// map the y-values in the training set.
+		System.out.println("FeatureGen.train()");
 		boolean labelsMapped = false;
 		if (cachedLabels) 
 			labelsMapped = stateMappings(trainData);
 		
 		if (dict != null) dict.train(trainData,model.numStates());
 		boolean requiresTraining = false;
-		for (int f = 0; f < features.size(); f++) {
-			if (getFeature(f).requiresTraining()) {
+		for (FeatureTypes f : features) {
+			if (f.requiresTraining()) {
 				requiresTraining = true;
 				break;
 			}
@@ -243,41 +257,90 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 		}
 		if (collectIds) 
 			totalFeatures = featureMap.collectFeatureIdentifiers(trainData,maxMemory());
+		System.out.println("end FeatureGen.train()");
 		return labelsMapped;
 	};
-	/**
-	 * @param seq
-	 */
+	public void printStats() {
+		System.out.println("Num states " + model.numStates());
+		System.out.println("Num edges " + model.numEdges());
+		if (dict != null) 
+			System.out.println("Num words in dictionary " + dict.dictionaryLength());
+		System.out.println("Num features " + numFeatures());
+	}
+//	protected FeatureImpl nextNoId() {
+//		feature.copy(featureToReturn);
+//		advance(false);
+//		return feature;
+//	}
+	
+	// called for each sequence in the input data - only used to collect features for the feature mapping
 	public void addTrainRecord(DataSequence seq) {
+		// for each token, applies all features to the sequence
 		for (int l = 0; l < seq.length(); l++) {
 			for (startScanFeaturesAt(seq,l); hasNext(); ) {
 				next();
 			}
 		}
 	}
-	public void printStats() {
-		System.out.println("Num states " + model.numStates());
-		System.out.println("Num edges " + model.numEdges());
-		if (dict != null) System.out.println("Num words in dictionary " + dict.dictionaryLength());
-		System.out.println("Num features " + numFeatures());
+	// 	resets the scan..   currentFeatureType, and features.iterator()
+	protected void initScanFeaturesAt(DataSequence d) {
+		data = d;
+		currentFeatureType = null;
+		featureIter = features.iterator();
+		advance();
 	}
-	protected FeatureImpl nextNoId() {
+	/*
+	 * Used in several instances 
+	 * loops through all the features, and does a startScanFeaturesAt
+	 */
+	public void startScanFeaturesAt(DataSequence seq, int prev, int p) {
+		cposEnd = p;
+		cposStart = prev+1;
+		for (int i = 0; i < features.size(); i++) {
+			getFeature(i).startScanFeaturesAt(seq,prev,cposEnd);
+		}
+		initScanFeaturesAt(seq);
+	}
+	// called for each start element in a sequence
+	public void startScanFeaturesAt(DataSequence seq, int p) {
+		cposEnd = p;
+		cposStart = p;
+		for (int i = 0; i < features.size(); i++) {
+			// for each feature, does a feature scan
+			getFeature(i).startScanFeaturesAt(seq,cposEnd);
+		}
+		initScanFeaturesAt(seq);
+	}
+	public Feature next() {
 		feature.copy(featureToReturn);
-		advance(false);
+		advance();
 		return feature;
 	}
+	public boolean hasNext() {
+		return (featureToReturn.id >= 0);
+	}
+	
+	// basically 
 	protected void advance() {
 		advance(!featureCollectMode);
 	}
+	
+	// WTF does this do?
+	// Literally just advances the featureType, and calls featureMap.getId(featureImpl) 
+	// which makes/retains a copy of the feature..
+	// has to be the worst code I have ever seen
 	protected void advance(boolean returnWithId) {
 		while (true) {
+			// if cft is null or cft is at the end, and, there's another feature, then move this forward.. 
 			for (;((currentFeatureType == null) || !currentFeatureType.hasNext()) && featureIter.hasNext();) {
 				currentFeatureType = (FeatureTypes)featureIter.next();
 			}
+//			if (((currentFeatureType == null) || !currentFeatureType.hasNext()) && featureIter.hasNext())
+//				currentFeatureType = (FeatureTypes)featureIter.next();
 			if (!currentFeatureType.hasNext())
 				break;
 			while (currentFeatureType.hasNext()) {
-				featureToReturn.init();
+				featureToReturn.init(); // 
 				copyNextFeature(featureToReturn);
 
 				featureToReturn.id = featureMap.getId(featureToReturn);
@@ -317,38 +380,10 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 			return true;
 		return false;
 	}
-	protected void initScanFeaturesAt(DataSequence d) {
-		data = d;
-		currentFeatureType = null;
-		featureIter = features.iterator();
-		advance();
-	}
-	public void startScanFeaturesAt(DataSequence d, int prev, int p) {
-		cposEnd = p;
-		cposStart = prev+1;
-		for (int i = 0; i < features.size(); i++) {
-			getFeature(i).startScanFeaturesAt(d,prev,cposEnd);
-		}
-		initScanFeaturesAt(d);
-	}
-	public void startScanFeaturesAt(DataSequence d, int p) {
-		cposEnd = p;
-		cposStart = p;
-		for (int i = 0; i < features.size(); i++) {
-			getFeature(i).startScanFeaturesAt(d,cposEnd);
-		}
-		initScanFeaturesAt(d);
-	}
-	public boolean hasNext() {
-		return (featureToReturn.id >= 0);
-	}
 
-	public Feature next() {
-		feature.copy(featureToReturn);
-		advance();
-		//      System.out.println(feature);
-		return feature;
-	}
+
+
+
 	public void freezeFeatures() {
 		if (featureCollectMode)
 			featureMap.freezeFeatures();
@@ -371,7 +406,8 @@ public class FeatureGenImpl implements FeatureGeneratorNested {
 	}
 	public void read(String fileName) throws IOException {
 		BufferedReader in=new BufferedReader(new FileReader(fileName));
-		if (dict != null) dict.read(in, model.numStates());
+		if (dict != null) 
+			dict.read(in, model.numStates());
 		totalFeatures = featureMap.read(in);
 	}
 	public void write(String fileName) throws IOException {

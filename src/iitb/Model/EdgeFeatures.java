@@ -21,7 +21,9 @@ public class EdgeFeatures extends FeatureTypes {
 	protected void setEdgeIter() {
 	    edgeIter = model.edgeIterator();
 	}
+	// returns true or false
 	public boolean startScanFeaturesAt(DataSequence data, int prevPos, int pos) {
+		// then we're at the 
 		if (prevPos < 0) {
 			edgeNum = model.numEdges();
 			return false;
@@ -39,13 +41,15 @@ public class EdgeFeatures extends FeatureTypes {
 		return (edgeIter != null) && (edgeNum < model.numEdges());
 	}	
 	public boolean lastEdgeWasOuter() {return edgeIsOuter;}
+	
+	// This is where the feature is assigned a name..
 	public void next(FeatureImpl f) {
 		edgeIsOuter = edgeIter.nextIsOuter();
 		Edge e = edgeIter.next();
 		Object name="";
 		if (featureCollectMode()) {
 			if (labelNames == null) {
-				name = "E."+model.label(e.start);
+				name = "E-"+model.label(e.start);
 			} else {
 				name = labelNames[model.label(e.start)];
 			}

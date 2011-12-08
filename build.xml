@@ -8,7 +8,7 @@
   <property name="lib" location="lib"/>
   <property name="doc" location="doc"/>
 <!-- <property name="stylesheet" value="stylesheet.css"/> -->
-  <property name="link" value="http://java.sun.com/j2se/1.4.1/docs/api"/>
+<!--  <property name="link" value="http://java.sun.com/j2se/1.4.1/docs/api"/> -->
   <property name="windowtitle" value="CRF- API specification"/>
   <property name="compile.debug" value="true"/>
   <path id="compile.classpath">

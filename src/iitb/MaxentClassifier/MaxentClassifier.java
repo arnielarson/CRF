@@ -15,52 +15,52 @@ import iitb.Utils.*;
 
 
 public class MaxentClassifier {
-    FeatureGenRecord featureGen;
-    CRF crfModel;
-    DataDesc dataDesc;
-    MaxentClassifier(Options opts) throws Exception {
-	dataDesc = new DataDesc(opts);
-	// read all parameters
-	featureGen = new FeatureGenRecord(dataDesc.numColumns, dataDesc.numLabels);
-	crfModel = new CRF(dataDesc.numLabels,featureGen,opts);
-    }
-    void train(String trainFile) throws IOException {
-	// read training data from the  given file.
-        double params[] = crfModel.train(new DataSet(FileData.read(trainFile,dataDesc)));
-        System.out.println("Trained model");
-        for (int i = 0; i < params.length; i++)
-            System.out.println(featureGen.featureName(i) + " " + params[i]);
-    }
-    void test(String testFile)  throws IOException {
-	FileData fData = new FileData();
-	fData.openForRead(testFile,dataDesc);
-	DataRecord dataRecord = new DataRecord(dataDesc.numColumns);
-	int confMat[][] = new int[dataDesc.numLabels][dataDesc.numLabels];
-	while (fData.readNext(dataRecord)) {
-	    int trueLabel = dataRecord.y();
-	    crfModel.apply(dataRecord);
-	    //	    System.out.println(trueLabel + " true:pred " + dataRecord.y());
-	    confMat[trueLabel][dataRecord.y()]++;
+	FeatureGenRecord featureGen;
+	CRF crfModel;
+	DataDesc dataDesc;
+	MaxentClassifier(Options opts) throws Exception {
+		dataDesc = new DataDesc(opts);
+		// read all parameters
+		featureGen = new FeatureGenRecord(dataDesc.numColumns, dataDesc.numLabels);
+		crfModel = new CRF(dataDesc.numLabels,featureGen,opts);
 	}
-	// output confusion matrix etc directly.
-	System.out.println("Confusion matrix ");
-	for(int i=0 ; i<dataDesc.numLabels ; i++) {
-	    System.out.print(i);
-	    for(int j=0 ; j<dataDesc.numLabels ; j++) {
-		System.out.print("\t"+confMat[i][j]);
-	    }
-	    System.out.println();
+	void train(String trainFile) throws IOException {
+		// read training data from the  given file.
+		double params[] = crfModel.train(new DataSet(FileData.read(trainFile,dataDesc)));
+		System.out.println("Trained model");
+		for (int i = 0; i < params.length; i++)
+			System.out.println(featureGen.featureName(i) + " " + params[i]);
 	}
-    }
-    public static void main(String args[]) {
-	try {
-	    Options opts = new Options(args);
-	    MaxentClassifier maxent = new MaxentClassifier(opts);
-	    maxent.train(opts.getMandatoryProperty("trainFile"));
-	    System.out.println("Finished training...Starting test");
-	    maxent.test(opts.getMandatoryProperty("testFile"));
-	} catch (Exception e) {
-	    e.printStackTrace();
+	void test(String testFile)  throws IOException {
+		FileData fData = new FileData();
+		fData.openForRead(testFile,dataDesc);
+		DataRecord dataRecord = new DataRecord(dataDesc.numColumns);
+		int confMat[][] = new int[dataDesc.numLabels][dataDesc.numLabels];
+		while (fData.readNext(dataRecord)) {
+			int trueLabel = dataRecord.y();
+			crfModel.apply(dataRecord);
+			//	    System.out.println(trueLabel + " true:pred " + dataRecord.y());
+			confMat[trueLabel][dataRecord.y()]++;
+		}
+		// output confusion matrix etc directly.
+		System.out.println("Confusion matrix ");
+		for(int i=0 ; i<dataDesc.numLabels ; i++) {
+			System.out.print(i);
+			for(int j=0 ; j<dataDesc.numLabels ; j++) {
+				System.out.print("\t"+confMat[i][j]);
+			}
+			System.out.println();
+		}
 	}
-    }
+	public static void main(String args[]) {
+		try {
+			Options opts = new Options(args);
+			MaxentClassifier maxent = new MaxentClassifier(opts);
+			maxent.train(opts.getMandatoryProperty("trainFile"));
+			System.out.println("Finished training...Starting test");
+			maxent.test(opts.getMandatoryProperty("testFile"));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 };

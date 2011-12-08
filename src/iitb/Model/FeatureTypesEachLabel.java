@@ -6,7 +6,7 @@ import iitb.CRF.DataSequence;
  * This can be used as a wrapper around a FeatureTypes class that wants to
  * generate a feature for each label.   
  * 
- *  For a ConcatRegexFeature inputed, this will 
+ * Designed to attach arbitrary features for each label.. 
  */
 public class FeatureTypesEachLabel extends FeatureTypes {
 	protected FeatureTypes single;
@@ -39,15 +39,14 @@ public class FeatureTypesEachLabel extends FeatureTypes {
 		return stateId < numStates;
 	}
 
-	public boolean startScanFeaturesAt(iitb.CRF.DataSequence data, int prevPos,
+	public boolean startScanFeaturesAt(DataSequence data, int prevPos,
 			int pos) {
 		stateId = numStates;
 		single.startScanFeaturesAt(data, prevPos, pos);
 		return advance();
 	}
 
-	public boolean startScanFeaturesAt(iitb.CRF.DataSequence data,
-			int pos) {
+	public boolean startScanFeaturesAt(DataSequence data, int pos) {
 		stateId = numStates;
 		single.startScanFeaturesAt(data, pos);
 		return advance();

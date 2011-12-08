@@ -297,7 +297,7 @@ public class DataCruncher {
 		}
 		return cArray;
 	}
-	
+
 	/**
 	 * Responsible for getting labeled data from a multi-line format
 	 * Iterates through lines until an entire sequence has been retrieved.
@@ -384,6 +384,8 @@ public class DataCruncher {
 	public static TrainData readTagged(int numLabels,String tfile,String rfile,String delimit,String tagDelimit,String impDelimit, LabelMap labelMap) {
 		try {
 			Vector td = new Vector();
+			System.out.println("Inputting tagged data from: "+tfile+".tagged");
+			System.out.println("Using "+delimit.length()+" delimiters: "+delimit);
 			BufferedReader tin=new BufferedReader(new FileReader(tfile+".tagged"));
 			BufferedReader rin=new BufferedReader(new FileReader(rfile+".raw"));
 			boolean fixedColFormat = false;

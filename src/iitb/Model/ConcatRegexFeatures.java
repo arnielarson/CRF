@@ -104,7 +104,8 @@ public class ConcatRegexFeatures extends FeatureTypes {
 	 * The maxMemory denotes the maximum segment size, for normal CRF the value of maxMemory is 1.
 	 * There are certain default patterns defined in the class. You can specify your own pattern in a file, and pass
 	 * the name of the file in this constructor. The file should begin with integer value for number of pattern in the 
-	 * file. This should be follwoed by one pattern definition on each line. The first word is the name of the pattern
+	 * file. 
+	 * This should be followed by one pattern definition on each line. The first word is the name of the pattern
 	 * and second word is regular expression for the pattern.
 	 *
 	 * @param fgen			a {@link Model} object
@@ -184,8 +185,8 @@ public class ConcatRegexFeatures extends FeatureTypes {
 	 * Constructs an object of ConcatRegexFeatures to be used to generate features for current token.
 	 
 	 * @param m			a {@link Model} object
-	 * @param relSegmentStart	index of the reltive position for left boundary
-	 * @param relSegmentEnd		index of the reltive position for right boundary
+	 * @param relSegmentStart	index of the relative position for left boundary
+	 * @param relSegmentEnd		index of the relative position for right boundary
 	 * @param patternFile		file which contains the pattern definition
 	 */
 	public ConcatRegexFeatures(FeatureGenImpl m, int relSegmentStart, int relSegmentEnd, String patternFile){
@@ -255,6 +256,7 @@ public class ConcatRegexFeatures extends FeatureTypes {
 			right = pos + relSegmentEnd;
 		}
 
+		// end condition
 		if(!(left >= 0 && left < data.length() && right >= 0 && right < data.length()))
 			index = patternString.length;
 

@@ -22,9 +22,10 @@ public class StartFeatures  extends FeatureTypes {
 		super(m);
 		fname=name;
 	}
+	// fairly simple feature.
 	public boolean startScanFeaturesAt(DataSequence data, int prevPos, int pos) {
 		if (prevPos >= 0) {
-			stateId = -1;
+			stateId = -1;  // then no.
 			return false;
 		} else {
 			startStateNum = 0;
